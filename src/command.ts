@@ -27,35 +27,20 @@ class Commands {
           (token: IToken) => token === TOKEN
         );
         if (index === -1) {
-          tokens.push(TOKEN!);
-          let b = new Bot(TOKEN as string);
-          await b.init();
-          fs.writeFileSync("src/data/tokens.json", JSON.stringify(tokens));
-          b.start();
-          bot.api.sendMessage(
-            ctx.from?.id as number,
-            `ربات شما با آیدی @${b.botInfo.username} با موفقیت ساخته شد واردش شوید و /start بزنید.`
-          );
+          try {
+            tokens.push(TOKEN!);
+            let b = new Bot(TOKEN as string);
+            await b.init();
+            fs.writeFileSync("src/data/tokens.json", JSON.stringify(tokens));
+            b.start();
+            bot.api.sendMessage(
+              ctx.from?.id as number,
+              `ربات شما با آیدی @${b.botInfo.username} با موفقیت ساخته شد واردش شوید و /start بزنید.`
+            );
+          } catch (e) {}
         } else {
-          // ctx.reply(`ربات شما قبلا ایجاد شده.`);
+          ctx.reply(`ربات شما قبلا ایجاد شده.`);
         }
-        // b.api
-        //   .setWebhook(`https://api.telegram.org/bot${TOKEN}/setwebhook`)
-        //   .then((res) => {
-        //     console.log(res);
-        //     if (res) {
-        //     }
-        //   });
-        // let b = new Api(process.env.TOKEN as string);
-        // b.setWebhook(`https://api.telegram.org/bot${TOKEN}/setwebhook`).then(
-        //   (res) => {
-        //     console.log(res);
-        //   }
-        // );
-        // b.getUpdates().then((res) => {
-        //   console.log(res);
-        // });
-
         return;
       }
       ctx.reply(`‍‍خب دوست من حالا توکن رباتت رو با دستور /newbot-TOKEN بفرست تا برات فعالش کنم.

@@ -3,6 +3,7 @@ import command from "./command";
 import bot from "./config/bot";
 import fs from "fs";
 import { Bot } from "grammy";
+
 //execute all commands
 command.exec();
 
@@ -15,8 +16,9 @@ tokens.forEach((item: IToken) => {
   });
   b.start();
 });
+
 bot.on("message", (ctx) => {
   console.log(ctx.message);
 });
 
-bot.start();
+bot.start({ timeout: 10000, drop_pending_updates: true });

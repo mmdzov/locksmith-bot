@@ -22,4 +22,4 @@ tokens.forEach(function (item) {
 bot_1.default.on("message", function (ctx) {
     console.log(ctx.message);
 });
-bot_1.default.start();
+bot_1.default.start({ timeout: 10000, drop_pending_updates: true });
