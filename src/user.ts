@@ -7,24 +7,46 @@ import {
   session,
   SessionFlavor,
 } from "grammy";
-import { BotType, SessionContext, setChannel } from "../global";
+import {
+  BotType,
+  SessionContext,
+  ChannelSession,
+  User as UserScheme,
+} from "../global";
 import keyboard from "./keyboard";
+import fs from "fs";
 
 let kb = keyboard.userKeyboard();
 class User {
   constructor(
-    private bot: Bot<Context & SessionFlavor<setChannel>, Api<RawApi>>,
+    private bot: Bot<Context & SessionFlavor<ChannelSession>, Api<RawApi>>,
     private creator: number
   ) {
     this.bot.use(
       session({
-        initial(): setChannel {
-          return { uid: 0 };
+        initial(): ChannelSession {
+          return { uid: 0, title: undefined };
         },
       })
     );
     this.bot.command("start", (ctx: Context) => {
       if (ctx.from?.id === this.creator) {
+        let newUser: UserScheme[] = [{ id: ctx.from?.id!, lock: [] }];
+        try {
+          let users: UserScheme[] = JSON.parse(
+            fs.readFileSync("./data/users.json", "utf8")
+          );
+          let index: number = users.findIndex(
+            (user: UserScheme) => user.id === ctx.from?.id
+          );
+          if (index === -1) {
+            fs.writeFileSync("./data/users.json", JSON.stringify(newUser));
+          }
+        } catch (e: any) {
+          if (e?.code === "ENOENT") {
+            fs.writeFileSync("./data/users.json", JSON.stringify(newUser));
+          }
+        }
         ctx.api.sendMessage(
           ctx.from?.id,
           `کلید های مدیریت برای شما فعال است.`,
@@ -38,7 +60,15 @@ class User {
       }
     });
     this.bot.on("message::mention", (ctx: SessionContext) => {
-      console.log(ctx.session.uid);
+      console.log(ctx.session.title);
+      if (
+        ctx.session.title === "ChannelSession" &&
+        ctx.from?.id === this.creator
+      ) {
+        console.log("ok");
+        let users = fs.readFileSync("./data/users.json", "utf8"); //! find user and add new lock channel
+        // ctx.session.title = undefined;
+      }
     });
     this.bot.hears("قفل به کانال🔐", (ctx: Context) => {
       if (!this.hasCreator(ctx)) return;
@@ -70,7 +100,8 @@ class User {
           },
         }
       );
-      ctx.session.uid = 10
+      ctx.session.uid = ctx.from?.id!;
+      ctx.session.title = "ChannelSession";
     });
   }
   private hasCreator(ctx: Context) {

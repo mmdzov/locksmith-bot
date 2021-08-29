@@ -1,4 +1,4 @@
-import { BotType, IToken, setChannel } from "./../global.d";
+import { BotType, IToken, ChannelSession } from "./../global.d";
 import command from "./command";
 import bot from "./config/bot";
 import fs from "fs";

@@ -7,9 +7,16 @@ export interface IToken {
   [index: string]: string | number;
 }
 
-export interface setChannel {
+export interface ChannelSession {
   uid: number;
+  title: "ChannelSession" | undefined;
 }
 
-export type BotType = Bot<Context & SessionFlavor<setChannel>, Api<RawApi>>;
-export type SessionContext = Context & SessionFlavor<setChannel>;
+export interface User {
+  id: number;
+  lock?: Partial<{ id: number; username: string }[]>;
+}
+
+//bot type using session and session context
+export type BotType = Bot<Context & SessionFlavor<ChannelSession>, Api<RawApi>>;
+export type SessionContext = Context & SessionFlavor<ChannelSession>;
