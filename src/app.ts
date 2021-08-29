@@ -1,19 +1,20 @@
-import { IToken } from "./../global.d";
+import { BotType, IToken, setChannel } from "./../global.d";
 import command from "./command";
 import bot from "./config/bot";
 import fs from "fs";
-import { Bot } from "grammy";
+import { Bot, Context, SessionFlavor } from "grammy";
+import User from "./user";
 
 //execute all commands
 command.exec();
 
-let datas = fs.readFileSync("src/data/tokens.json", "utf8");
+let datas = fs.readFileSync("./data/tokens.json", "utf8");
+
 let tokens: IToken[] = JSON.parse(datas);
 tokens.forEach((item: IToken) => {
-  let b = new Bot(item);
-  b.on("message", (ctx) => {
-    console.log(ctx.message?.text);
-  });
+  let b = new Bot<BotType>(item.TOKEN);
+  new User(b, item.id as number);
+  b
   b.start();
 });
 

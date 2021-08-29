@@ -1,10 +1,12 @@
-import { IToken } from "./../global.d";
+import { BotType, IToken } from "./../global.d";
 import { Api, Context } from "grammy";
 import bot from "./config/bot";
 import express from "express";
 import { Bot } from "grammy";
 import fs from "fs";
+import User from "./user";
 class Commands {
+  startSubBot() {}
   private start() {
     bot.command("start", (ctx: Context) => {
       ctx.reply(`سلام ${ctx.message?.from?.first_name} به قفل ساز کانال و گروه خوش اومدی.
@@ -21,17 +23,18 @@ class Commands {
           .split("/newbot-")
           .filter((_, index) => index !== 0)
           .join("");
-        let datas = fs.readFileSync("src/data/tokens.json", "utf8");
+        let datas = fs.readFileSync("./data/tokens.json", "utf8");
         let tokens: IToken[] = JSON.parse(datas);
         let index: number = tokens.findIndex(
-          (token: IToken) => token === TOKEN
+          (token: IToken) => token.TOKEN === TOKEN
         );
         if (index === -1) {
           try {
-            tokens.push(TOKEN!);
-            let b = new Bot(TOKEN as string);
+            tokens.push({ TOKEN: TOKEN!, id: ctx.from?.id as number });
+            let b = new Bot<BotType>(TOKEN as string);
             await b.init();
-            fs.writeFileSync("src/data/tokens.json", JSON.stringify(tokens));
+            new User(b, ctx.from?.id as number);
+            fs.writeFileSync("./data/tokens.json", JSON.stringify(tokens));
             b.start();
             bot.api.sendMessage(
               ctx.from?.id as number,
