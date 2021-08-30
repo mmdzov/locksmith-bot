@@ -15,6 +15,7 @@ import {
 } from "../global";
 import keyboard from "./keyboard";
 import fs from "fs";
+import { Chat, ChatFromGetChat } from "@grammyjs/types";
 
 let kb = keyboard.userKeyboard();
 class User {
@@ -59,16 +60,96 @@ class User {
         );
       }
     });
-    this.bot.on("message::mention", (ctx: SessionContext) => {
-      console.log(ctx.session.title);
+    this.bot.on("channel_post", async (ctx: SessionContext) => {
+      let b: Chat & {
+        username?: string;
+        title?: string;
+      } = ctx.channelPost?.sender_chat!;
+      ctx.getChatAdministrators().then((res) => {
+        let users: UserScheme[] = JSON.parse(
+          fs.readFileSync("./data/users.json", "utf8")
+        );
+        users.map((user) => {
+          let r = res.filter((item) => user.id === item.user.id);
+          if (r.length > 0) {
+            r.map((item) => {
+              bot.api.sendMessage(
+                item.user.id,
+                "کانال جدید ثبت شد\n\n" +
+                  "آیدی عددی کانال : " +
+                  " `" +
+                  Math.abs(b.id) +
+                  "`\n\n" +
+                  `آیدی کانال : @${b.username}
+
+عنوان کانال : ${b.title}
+
+آیدی عددی کانال را از همینجا کپی کرده و بفرستید تا قفل بر روی همین کانال فعال شود
+`,
+                { parse_mode: "Markdown" }
+              );
+            });
+          }
+        });
+      });
+    });
+    this.bot.on("message", async (ctx: SessionContext, next) => {
       if (
         ctx.session.title === "ChannelSession" &&
         ctx.from?.id === this.creator
       ) {
-        console.log("ok");
-        let users = fs.readFileSync("./data/users.json", "utf8"); //! find user and add new lock channel
-        // ctx.session.title = undefined;
+        let users: UserScheme[] = JSON.parse(
+          fs.readFileSync("./data/users.json", "utf8")
+        );
+        let index: number = users.findIndex(
+          (user: UserScheme) => user.id === ctx.from?.id!
+        );
+        if (index >= 0) {
+          let newbot: Chat & {
+            username?: string;
+            title?: string;
+          } = await bot.api.getChat(-Math.abs(+(ctx.message?.text as string)));
+          let usernameHasExist = await users[index].lock?.findIndex((item) => {
+            return item?.id! === newbot.id;
+          });
+          if (usernameHasExist === -1) {
+            users[index].lock?.push({
+              id: newbot.id,
+              username: newbot?.username!,
+            });
+            fs.writeFileSync("./data/users.json", JSON.stringify(users));
+            ctx.reply(
+              "قفل کانال جدید ثبت و افزوده شد.\n\n" +
+                "آیدی عددی کانال : " +
+                " `" +
+                Math.abs(newbot.id) +
+                "`\n\n" +
+                `آیدی کانال : @${newbot.username}
+
+عنوان کانال : ${newbot.title}
+
+`,
+              {
+                parse_mode: "Markdown",
+                reply_markup: {
+                  keyboard: kb.mainKeyboard.keyboard,
+                  resize_keyboard: true,
+                },
+              }
+            );
+          } else {
+            ctx.reply("کانال قبلا ثبت شده.", {
+              reply_markup: {
+                keyboard: kb.mainKeyboard.keyboard,
+                resize_keyboard: true,
+              },
+            });
+          }
+        }
+        ctx.session.title = undefined;
+        ctx.session.uid = 0;
       }
+      return next();
     });
     this.bot.hears("قفل به کانال🔐", (ctx: Context) => {
       if (!this.hasCreator(ctx)) return;
@@ -92,7 +173,9 @@ class User {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(
         ctx.from?.id as number,
-        `در ابتدا به منظور بررسی عضویت کاربر به کانال می بایست ربات ادمین کانال شود و در قدم بعد آیدی کانال را بفرستید تا ثبت شود`,
+        `در ابتدا به منظور بررسی عضویت کاربر به کانال می بایست ربات ادمین کانال شود.
+به محض ادمین کردن ربات کافی است در کانال /start را بزنید و بعد در همینجا برایتان اطلاعات کانالتان فرستاده خواهد شد
+شما چت آیدی گروه را برای ربات می فرستید در نهایت قفل ربات شما ثبت خواهد شد`,
         {
           reply_markup: {
             keyboard: kb.cancelKeyboard.keyboard,

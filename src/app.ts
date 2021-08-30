@@ -14,12 +14,17 @@ let tokens: IToken[] = JSON.parse(datas);
 tokens.forEach((item: IToken) => {
   let b = new Bot<BotType>(item.TOKEN);
   new User(b, item.id as number);
-  b
-  b.start();
+  b;
+  b.start({
+    allowed_updates: ["channel_post","message","chat_member"],
+  });
 });
 
 bot.on("message", (ctx) => {
   console.log(ctx.message);
 });
 
-bot.start({ timeout: 10000, drop_pending_updates: true });
+bot.start({
+  timeout: 10000,
+  drop_pending_updates: true,
+});
