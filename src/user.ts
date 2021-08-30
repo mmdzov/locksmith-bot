@@ -61,6 +61,7 @@ class User {
       }
     });
     this.bot.on("channel_post", async (ctx: SessionContext) => {
+      if (ctx.channelPost?.text !== "lock-channel") return;
       let b: Chat & {
         username?: string;
         title?: string;
@@ -73,6 +74,7 @@ class User {
           let r = res.filter((item) => user.id === item.user.id);
           if (r.length > 0) {
             r.map((item) => {
+              ctx.deleteMessage().catch((e) => {});
               bot.api.sendMessage(
                 item.user.id,
                 "کانال جدید ثبت شد\n\n" +
@@ -140,7 +142,7 @@ class User {
           } else {
             ctx.reply("کانال قبلا ثبت شده.", {
               reply_markup: {
-                keyboard: kb.mainKeyboard.keyboard,
+                keyboard: kb.channelKeyboard.keyboard,
                 resize_keyboard: true,
               },
             });
@@ -173,9 +175,17 @@ class User {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(
         ctx.from?.id as number,
-        `در ابتدا به منظور بررسی عضویت کاربر به کانال می بایست ربات ادمین کانال شود.
-به محض ادمین کردن ربات کافی است در کانال /start را بزنید و بعد در همینجا برایتان اطلاعات کانالتان فرستاده خواهد شد
-شما چت آیدی گروه را برای ربات می فرستید در نهایت قفل ربات شما ثبت خواهد شد`,
+        `برای ثبت قفل کانال مراحل زیر را دنبال کنید:
+        
+1. رباتتان را به کانال مورد نظر ادد کنید و دسترسی ادمین کامل به او بدهید.
+
+2. در کانال عبارت lock-channel را تایپ کنید و بفرستید ربات اطلاعات کانالتان را در همینجا ارسال می کند.
+
+3. آیدی عددی کانالتان را کپی کنید و بفرستید.
+
+درنهایت قفل کانال برای رباتتان فعال می شود.
+
+`,
         {
           reply_markup: {
             keyboard: kb.cancelKeyboard.keyboard,
