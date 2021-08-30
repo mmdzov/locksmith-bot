@@ -35,7 +35,14 @@ class Commands {
             await b.init();
             new User(b, ctx.from?.id as number);
             fs.writeFileSync("./data/tokens.json", JSON.stringify(tokens));
-            b.start();
+            b.start({
+              allowed_updates: [
+                "channel_post",
+                "message",
+                "chat_member",
+                "callback_query",
+              ],
+            });
             bot.api.sendMessage(
               ctx.from?.id as number,
               `ربات شما با آیدی @${b.botInfo.username} با موفقیت ساخته شد واردش شوید و /start بزنید.`

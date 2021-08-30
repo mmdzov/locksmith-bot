@@ -16,7 +16,12 @@ tokens.forEach((item: IToken) => {
   new User(b, item.id as number);
   b;
   b.start({
-    allowed_updates: ["channel_post","message","chat_member"],
+    allowed_updates: [
+      "channel_post",
+      "message",
+      "chat_member",
+      "callback_query",
+    ],
   });
 });
 
