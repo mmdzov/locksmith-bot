@@ -271,7 +271,6 @@ class User {
       let users: UserScheme[] = JSON.parse(
         fs.readFileSync("./data/users.json", "utf8")
       );
-      console.log(ctx.session.uploadDataSession);
       let index = users.findIndex((user) => user.id === this.creator);
       users[index].posts.push(ctx.session.uploadDataSession);
       await fs.writeFileSync("./data/users.json", JSON.stringify(users));
@@ -365,21 +364,26 @@ ${refUrl}`,
         "document",
         "text",
       ];
-      fileTypes.map((Type) => {
-        let selectType = ctx?.message?.[Type];
+      for (let i = 0; i < fileTypes.length; i++) {
+        let selectType = ctx?.message?.[fileTypes[i]];
         if (selectType instanceof Array) {
-          data.file = selectType[selectType.length - 1];
-          data.type = Type;
+          if (selectType.length > 0) {
+            console.log(selectType);
+            data.file = selectType[selectType.length - 1];
+            data.type = fileTypes[i];
+            break;
+          }
         } else if (selectType instanceof Object) {
-          data.file = selectType;
-          data.type = Type;
-        } else {
-          data.type = Type;
+          if (Object.keys(selectType).length > 0) {
+            data.file = selectType;
+            data.type = fileTypes[i];
+            break;
+          }
+        } else if (typeof selectType === "string" && selectType.length > 0) {
+          data.type = "text";
         }
-      });
-      //! completing file upload to file system
+      }
       ctx.session.uploadDataSession = data;
-      // console.log(data);
       ctx.reply(
         "بعد از اتمام کار و ارسال محتوا بر روی آپلود محتوا بزنید تا عملیات انجام شود."
       );
@@ -400,6 +404,10 @@ ${refUrl}`,
       (post) =>
         post.referral_link === refParse.filter((_, i) => i !== 0).join("_")
     );
+    if (refIndex === -1) {
+      ctx.reply("محتوا یافت نشد.");
+      return;
+    }
     let content = users[index].posts[refIndex];
     let text = `${content.text}
       
