@@ -44,6 +44,7 @@ export interface UserJoinedSession {
 export interface ChannelType {
   id: number;
   username: string;
+  link?: undefined;
 }
 
 export interface UploadDataSession {
@@ -57,8 +58,12 @@ export interface UploadType {
 export interface ChannelSession {
   uid: number;
   title: "ChannelSession" | undefined;
+  delete;
 }
 
+export interface DeleteChannel {
+  deleteChannel: boolean;
+}
 export interface Referral {
   refId: string | undefined;
 }
@@ -67,6 +72,7 @@ type Sessions = ChannelSession &
   UserJoinedSession &
   Referral &
   UploadType &
+  DeleteChannel &
   UploadDataSession;
 
 //bot type using session and session context

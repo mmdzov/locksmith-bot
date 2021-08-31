@@ -41,6 +41,7 @@ class User {
             failedJoin: 0,
             uploadType: undefined, //! default undefined
             uploadDataSession: undefined,
+            deleteChannel: false,
             refId: undefined,
           };
         },
@@ -150,10 +151,12 @@ class User {
     });
     this.bot.on("message", async (ctx: SessionContext, next) => {
       let hasUpload: boolean = this.uploadData(ctx);
+      this.deleteChannel(ctx);
       if (hasUpload) return next();
       if (
         ctx.session.title === "ChannelSession" &&
-        ctx.from?.id === this.creator
+        ctx.from?.id === this.creator &&
+        !kb.keys.includes("بازگشت🔙")
       ) {
         let users: UserScheme[] = JSON.parse(
           fs.readFileSync("./data/users.json", "utf8")
@@ -208,12 +211,16 @@ class User {
       }
       return next();
     });
-    this.bot.hears("مشاهده 👁‍🗨", async (ctx: Context) => {
+    this.bot.hears("مشاهده 👁‍🗨", async (ctx: Context, next) => {
       if (ctx.from?.id! !== this.creator) return;
-      let users: UserScheme[] = JSON.parse(
+      let users: UserScheme[] = await JSON.parse(
         fs.readFileSync("./data/users.json", "utf8")
       );
-      let index = users.findIndex((user) => user.id === ctx.from?.id!);
+      let index = await users.findIndex((user) => user.id === ctx.from?.id!);
+      if (index === -1) {
+        ctx.reply(`هنوز کانالی ثبت نکردید.`);
+        return;
+      }
       let lockList: ChannelType[] = users[index]?.lock! as ChannelType[];
       type ChannelChatType = ChatFromGetChat &
         Partial<{ title?: string; username?: string; invite_link: string }>;
@@ -225,14 +232,29 @@ class User {
 
 یوزرنیم : @${channel.username}
 
-آیدی عددی : ${channel.id}
+آیدی عددی : ${Math.abs(channel.id)}
 
 لینک کانال : 
 ${channel.invite_link}
 
         `);
       }
-      ctx.reply(`${channels.join("\n------------\n\n")}`)
+      ctx.reply(`${channels.join("\n------------\n\n")}`);
+      return next();
+    });
+    this.bot.hears("حذف❌", (ctx: SessionContext, next) => {
+      ctx.reply(
+        `یوزرنیم یا آیدی عددی کانال را بفرستید
+توجه داشته باشید یوزرنیم را با @ ارسال کنید`,
+        {
+          reply_markup: {
+            keyboard: kb.cancelKeyboard.keyboard,
+            resize_keyboard: true,
+          },
+        }
+      );
+      ctx.session.deleteChannel = true;
+      return next();
     });
     this.bot.callbackQuery("Joined", async (ctx: SessionContext) => {
       let failedJoin = 0;
@@ -266,7 +288,7 @@ ${channel.invite_link}
         this.getReferralContent(ctx, ctx.session.refId);
       }
     });
-    this.bot.hears("مدیریت قفل🔐", (ctx: Context) => {
+    this.bot.hears("مدیریت قفل🔐", (ctx: Context, next) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
         reply_markup: {
@@ -274,8 +296,9 @@ ${channel.invite_link}
           resize_keyboard: true,
         },
       });
+      return next();
     });
-    this.bot.hears("آپلود🗳", (ctx: SessionContext) => {
+    this.bot.hears("آپلود🗳", (ctx: SessionContext, next) => {
       ctx.reply(
         `محتوایی که می خواهید در ربات قفل بماند را ارسال کنید تا آپلود شود.
 
@@ -288,8 +311,9 @@ ${channel.invite_link}
         }
       );
       ctx.session.uploadType = "upload";
+      return next();
     });
-    this.bot.hears("آپلود محتوا🗂", async (ctx: SessionContext) => {
+    this.bot.hears("آپلود محتوا🗂", async (ctx: SessionContext, next) => {
       if (typeof ctx.session.uploadDataSession === "undefined") {
         ctx.reply(`شما هنوز محتوایی ارسال نکردید.`);
         return;
@@ -314,19 +338,35 @@ ${refUrl}`,
       );
       ctx.session.uploadDataSession = undefined;
       ctx.session.uploadType = undefined;
+      return next();
     });
-    this.bot.hears("بازگشت🔙", (ctx: SessionContext) => {
+
+    //! back
+    this.bot.hears("بازگشت🔙", (ctx: SessionContext, next) => {
       if (!this.hasCreator(ctx)) return;
+      ctx.session.uploadDataSession = undefined;
+      ctx.session.uploadType = undefined;
+      if (ctx.session.deleteChannel || ctx.session.title === "ChannelSession") {
+        ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
+          reply_markup: {
+            keyboard: kb.channelKeyboard.keyboard,
+            resize_keyboard: true,
+          },
+        });
+        ctx.session.deleteChannel = false;
+        ctx.session.title = undefined;
+        ctx.session.uid = 0;
+        return;
+      }
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
         reply_markup: {
           keyboard: kb.mainKeyboard.keyboard,
           resize_keyboard: true,
         },
       });
-      ctx.session.uploadDataSession = undefined;
-      ctx.session.uploadType = undefined;
+      return next();
     });
-    this.bot.hears("افزودن📌", (ctx: SessionContext) => {
+    this.bot.hears("افزودن📌", (ctx: SessionContext, next) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(
         ctx.from?.id as number,
@@ -350,6 +390,7 @@ ${refUrl}`,
       );
       ctx.session.uid = ctx.from?.id!;
       ctx.session.title = "ChannelSession";
+      return next();
     });
   }
   private async hasChannelMember(ctx: SessionContext) {
@@ -420,6 +461,52 @@ ${refUrl}`,
     }
     return false;
   }
+
+  private deleteChannel(ctx: SessionContext) {
+    if (ctx.from?.id !== this.creator) return;
+    if (ctx.session.deleteChannel === false) return;
+    let users: UserScheme[] = JSON.parse(
+      fs.readFileSync("./data/users.json", "utf8")
+    );
+    let index = users.findIndex((user) => user.id === ctx.from?.id);
+    type ID = Partial<{
+      content: string | number;
+      type: "link" | "id" | "username";
+    }>;
+    let detectChannel = ctx.message?.text;
+    let id: ID = {};
+    if (detectChannel?.includes("@")) {
+      id.content = detectChannel.split("@").filter((item) => item !== "")[0];
+      id.type = "username";
+    } else if (/[0-9]/g.test(detectChannel!))
+      id = { type: "id", content: -Math.abs(+detectChannel!) };
+    // else if (
+    //   detectChannel?.includes("http") ||
+    //   detectChannel?.includes("t.me")
+    // ) {
+    //   id = { type: "link", content: ctx.message?.text };
+    // }
+    else {
+      if (detectChannel !== "بازگشت🔙") {
+        ctx.reply("کانال یافت نشد. آیدی یا یوزرنیم کانال اشتباه است.");
+      }
+      return;
+    }
+    if (id.type !== "link") {
+      users[index].lock = users[index].lock?.filter(
+        (lock) => lock?.[id?.type!] !== id.content
+      );
+      fs.writeFileSync("./data/users.json", JSON.stringify(users));
+      ctx.session.deleteChannel = false;
+      ctx.reply(`قفل کانال برداشته شد.`, {
+        reply_markup: {
+          keyboard: kb.channelKeyboard.keyboard,
+          resize_keyboard: true,
+        },
+      });
+    }
+  }
+
   private getReferralContent(ctx: SessionContext, refId?: string) {
     let referral = refId ?? ctx.match;
     if (!referral?.includes("ref")) return false;

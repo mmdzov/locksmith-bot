@@ -17,6 +17,7 @@ class keyboard {
     let cancelKeyboard = new Keyboard().text(cancel);
     let uploadKeyboard = new Keyboard().add(...upload);
     return {
+      keys: [...main, ...channel, ...upload, cancel],
       mainKeyboard,
       channelKeyboard,
       cancelKeyboard,
