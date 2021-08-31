@@ -240,7 +240,7 @@ class User {
         this.getReferralContent(ctx, ctx.session.refId);
       }
     });
-    this.bot.hears("قفل به کانال🔐", (ctx: Context) => {
+    this.bot.hears("مدیریت قفل🔐", (ctx: Context) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
         reply_markup: {
@@ -263,7 +263,7 @@ class User {
       );
       ctx.session.uploadType = "upload";
     });
-    this.bot.hears("آپلود محتوا", async (ctx: SessionContext) => {
+    this.bot.hears("آپلود محتوا🗂", async (ctx: SessionContext) => {
       if (typeof ctx.session.uploadDataSession === "undefined") {
         ctx.reply(`شما هنوز محتوایی ارسال نکردید.`);
         return;
@@ -289,7 +289,7 @@ ${refUrl}`,
       ctx.session.uploadDataSession = undefined;
       ctx.session.uploadType = undefined;
     });
-    this.bot.hears("بازگشت", (ctx: SessionContext) => {
+    this.bot.hears("بازگشت🔙", (ctx: SessionContext) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
         reply_markup: {
@@ -300,7 +300,7 @@ ${refUrl}`,
       ctx.session.uploadDataSession = undefined;
       ctx.session.uploadType = undefined;
     });
-    this.bot.hears("کانال جدید", (ctx: SessionContext) => {
+    this.bot.hears("افزودن📌", (ctx: SessionContext) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(
         ctx.from?.id as number,
@@ -350,7 +350,8 @@ ${refUrl}`,
     if (ctx.from?.id !== this.creator) return false;
     if (
       ctx.session.uploadType === "upload" &&
-      ctx.message?.text !== "آپلود محتوا"
+      ctx.message?.text !== "آپلود محتوا🗂" &&
+      ctx.message?.text !== "بازگشت🔙"
     ) {
       let data: Partial<UploadContent> = {
         author_id: ctx.from?.id,
@@ -387,7 +388,7 @@ ${refUrl}`,
       }
       ctx.session.uploadDataSession = data;
       ctx.reply(
-        "بعد از اتمام کار و ارسال محتوا بر روی آپلود محتوا بزنید تا عملیات انجام شود."
+        "بعد از اتمام کار و ارسال محتوا بر روی آپلود محتوا🗂 بزنید تا عملیات انجام شود."
       );
       return true;
     }
