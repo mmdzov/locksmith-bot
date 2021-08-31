@@ -347,6 +347,7 @@ ${refUrl}`);
         author_id: ctx.from?.id,
         referral_link: nanoid(10),
         text: ctx.message?.text ?? ctx.message?.caption,
+        views: 0,
       };
       let fileTypes: UploadTypeAllows[] = [
         "photo",
@@ -378,7 +379,7 @@ ${refUrl}`);
     }
     return false;
   }
-  private getReferralContent(ctx: Context, refId?: string) {
+  private getReferralContent(ctx: SessionContext, refId?: string) {
     let referral = refId ?? ctx.match;
     if (!referral?.includes("ref")) return false;
     let refParse: string[] = referral.toString().split("_");
@@ -392,33 +393,38 @@ ${refUrl}`);
         post.referral_link === refParse.filter((_, i) => i !== 0).join("_")
     );
     let content = users[index].posts[refIndex];
+    let text = `${content.text}
+      
+تعداد دریافتی ها : ${content.views! + 1}`;
     if (content.type === "photo") {
       this.bot.api.sendPhoto(ctx.chat?.id!, content.file?.file_id as string, {
-        caption: content.text,
+        caption: text,
       });
     } else if (content.type === "audio") {
       this.bot.api.sendAudio(ctx.chat?.id!, content.file?.file_id as string, {
-        caption: content.text,
+        caption: text,
       });
     } else if (content.type === "document") {
       this.bot.api.sendDocument(
         ctx.chat?.id!,
         content.file?.file_id as string,
         {
-          caption: content.text,
+          caption: text,
         }
       );
     } else if (content.type === "video") {
       this.bot.api.sendVideo(ctx.chat?.id!, content.file?.file_id as string, {
-        caption: content.text,
+        caption: text,
       });
     } else if (content.type === "voice") {
       this.bot.api.sendVoice(ctx.chat?.id!, content.file?.file_id as string, {
-        caption: content.text,
+        caption: text,
       });
     } else if (content.type === "text") {
       this.bot.api.sendMessage(ctx.chat?.id!, content?.text!);
     }
+    users[index].posts[refIndex].views! += 1;
+    fs.writeFileSync("./data/users.json", JSON.stringify(users));
   }
   private hasCreator(ctx: Context) {
     if (ctx.from?.id === this.creator) return true;

@@ -23,6 +23,7 @@ export interface UploadContent {
   author_id: number;
   referral_link: string;
   type: UploadTypeAllows;
+  views: number;
 }
 export interface User {
   id: number;
