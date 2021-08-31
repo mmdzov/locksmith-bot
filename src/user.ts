@@ -437,7 +437,7 @@ ${refUrl}`,
         caption: text,
       });
     } else if (content.type === "text") {
-      this.bot.api.sendMessage(ctx.chat?.id!, content?.text!);
+      this.bot.api.sendMessage(ctx.chat?.id!, text);
     }
     users[index].posts[refIndex].views! += 1;
     fs.writeFileSync("./data/users.json", JSON.stringify(users));
