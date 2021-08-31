@@ -217,11 +217,11 @@ class User {
         fs.readFileSync("./data/users.json", "utf8")
       );
       let index = await users.findIndex((user) => user.id === ctx.from?.id!);
-      if (index === -1) {
+      let lockList: ChannelType[] = users[index]?.lock! as ChannelType[];
+      if (lockList?.length === 0) {
         ctx.reply(`هنوز کانالی ثبت نکردید.`);
         return;
       }
-      let lockList: ChannelType[] = users[index]?.lock! as ChannelType[];
       type ChannelChatType = ChatFromGetChat &
         Partial<{ title?: string; username?: string; invite_link: string }>;
       let channel: ChannelChatType;
@@ -230,14 +230,14 @@ class User {
         channel = await this.bot.api.getChat(lockList[x].id);
         channels.push(`نام کانال : ${channel.title}
 
-یوزرنیم : @${channel.username}
+      یوزرنیم : @${channel.username}
 
-آیدی عددی : ${Math.abs(channel.id)}
+      آیدی عددی : ${Math.abs(channel.id)}
 
-لینک کانال : 
-${channel.invite_link}
+      لینک کانال :
+      ${channel.invite_link}
 
-        `);
+              `);
       }
       ctx.reply(`${channels.join("\n------------\n\n")}`);
       return next();
