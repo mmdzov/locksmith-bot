@@ -23,7 +23,7 @@ import {
 } from "../global";
 import keyboard from "./keyboard";
 import fs from "fs";
-import { Chat, Message } from "@grammyjs/types";
+import { Chat, ChatFromGetChat, Message } from "@grammyjs/types";
 import { nanoid } from "nanoid";
 let kb = keyboard.userKeyboard();
 class User {
@@ -207,6 +207,32 @@ class User {
         ctx.session.uid = 0;
       }
       return next();
+    });
+    this.bot.hears("مشاهده 👁‍🗨", async (ctx: Context) => {
+      if (ctx.from?.id! !== this.creator) return;
+      let users: UserScheme[] = JSON.parse(
+        fs.readFileSync("./data/users.json", "utf8")
+      );
+      let index = users.findIndex((user) => user.id === ctx.from?.id!);
+      let lockList: ChannelType[] = users[index]?.lock! as ChannelType[];
+      type ChannelChatType = ChatFromGetChat &
+        Partial<{ title?: string; username?: string; invite_link: string }>;
+      let channel: ChannelChatType;
+      let channels: string[] = [];
+      for (let x in lockList) {
+        channel = await this.bot.api.getChat(lockList[x].id);
+        channels.push(`نام کانال : ${channel.title}
+
+یوزرنیم : @${channel.username}
+
+آیدی عددی : ${channel.id}
+
+لینک کانال : 
+${channel.invite_link}
+
+        `);
+      }
+      ctx.reply(`${channels.join("\n------------\n\n")}`)
     });
     this.bot.callbackQuery("Joined", async (ctx: SessionContext) => {
       let failedJoin = 0;
