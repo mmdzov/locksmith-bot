@@ -276,9 +276,17 @@ class User {
       users[index].posts.push(ctx.session.uploadDataSession);
       await fs.writeFileSync("./data/users.json", JSON.stringify(users));
       const refUrl = `https://t.me/${this.bot.botInfo.username}?start=ref_${this.creator}_${ctx.session.uploadDataSession.referral_link}`;
-      ctx.reply(`محتوا آپلود شد.
+      ctx.reply(
+        `محتوا آپلود شد.
 لینک محتوا: 
-${refUrl}`);
+${refUrl}`,
+        {
+          reply_markup: {
+            keyboard: kb.mainKeyboard.keyboard,
+            resize_keyboard: true,
+          },
+        }
+      );
       ctx.session.uploadDataSession = undefined;
       ctx.session.uploadType = undefined;
     });
