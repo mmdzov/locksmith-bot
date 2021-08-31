@@ -1,8 +1,8 @@
-import { BotType, IToken, ChannelSession } from "./../global.d";
+import { BotType, IToken } from "./../global.d";
 import command from "./command";
 import bot from "./config/bot";
 import fs from "fs";
-import { Bot, Context, SessionFlavor } from "grammy";
+import { Bot } from "grammy";
 import User from "./user";
 
 //execute all commands

@@ -1,9 +1,16 @@
-import { ChannelType } from "./../global.d";
+import {
+  ChannelType,
+  UploadContent,
+  UploadFileScheme,
+  UploadTypeAllows,
+} from "./../global.d";
 import {
   Api,
   Bot,
   Context,
   InlineKeyboard,
+  InputFile,
+  NextFunction,
   RawApi,
   session,
   SessionFlavor,
@@ -16,8 +23,8 @@ import {
 } from "../global";
 import keyboard from "./keyboard";
 import fs from "fs";
-import { Chat } from "@grammyjs/types";
-
+import { Chat, Message } from "@grammyjs/types";
+import { nanoid } from "nanoid";
 let kb = keyboard.userKeyboard();
 class User {
   constructor(
@@ -32,13 +39,19 @@ class User {
             title: undefined,
             channels: undefined,
             failedJoin: 0,
+            sendType: "send", //! default undefined
+            uploadType: undefined, //! default undefined
+            uploadDataSession: undefined,
           };
         },
       })
     );
     this.bot.command("start", async (ctx: SessionContext) => {
+      console.log(ctx.match);
       if (ctx.from?.id === this.creator) {
-        let newUser: UserScheme[] = [{ id: ctx.from?.id!, lock: [] }];
+        let newUser: UserScheme[] = [
+          { id: ctx.from?.id!, lock: [], posts: [] },
+        ];
         try {
           let users: UserScheme[] = JSON.parse(
             fs.readFileSync("./data/users.json", "utf8")
@@ -129,6 +142,8 @@ class User {
       });
     });
     this.bot.on("message", async (ctx: SessionContext, next) => {
+      let hasUpload: boolean = this.uploadData(ctx);
+      if (hasUpload) return next();
       if (
         ctx.session.title === "ChannelSession" &&
         ctx.from?.id === this.creator
@@ -226,6 +241,45 @@ class User {
         },
       });
     });
+    this.bot.hears("ارسال🕊", (ctx: SessionContext) => {
+      ctx.reply(
+        `محتوایی که می خواهید در ربات قفل بماند را ارسال کنید تا آپلود شود.
+
+می تواند شامل : ویس / تصویر / ویدیو / فایل / متن / موسیقی، باشد.`,
+        {
+          reply_markup: {
+            keyboard: kb.uploadKeyboard.keyboard,
+            resize_keyboard: true,
+          },
+        }
+      );
+      ctx.session.uploadType = "upload";
+      //       ctx.reply(`متن خود را ارسال کنید.
+      // اگر تصویری دارید می توانید آن را کنار متن خود ضمیمه کنید.
+      // برای اشاره به لینک محتوای فعلی کافی است به این صورت عمل کنید:
+      // &دریافت فیلم📥&
+      // یعنی علامت & را می بایست قبل و بعد از محتوایی که می خواهید لینک بشود قرار بدهید.
+      // می توانید از حالت بولد و ایتالیک و مونو و... برای محتوای خود استفاده کنید.`);
+      //       ctx.session.sendType = "send";
+    });
+    this.bot.hears("آپلود محتوا", (ctx: SessionContext) => {
+      if (typeof ctx.session.uploadDataSession === "undefined") {
+        ctx.reply(`شما هنوز محتوایی ارسال نکردید.`);
+        return;
+      }
+      let users: UserScheme[] = JSON.parse(
+        fs.readFileSync("./data/users.json", "utf8")
+      );
+      let index = users.findIndex((user) => user.id === this.creator);
+      users[index].posts.push(ctx.session.uploadDataSession);
+      fs.writeFileSync("./data/users.json", JSON.stringify(users));
+      const refUrl = `https://t.me/${this.bot.botInfo.username}?start=ref_${this.creator}_${ctx.session.uploadDataSession.referral_link}`;
+      ctx.reply(`محتوا آپلود شد.
+لینک محتوا: 
+${refUrl}`);
+      ctx.session.uploadDataSession = undefined;
+      ctx.session.uploadType = undefined;
+    });
     this.bot.hears("بازگشت", (ctx: Context) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
@@ -280,6 +334,40 @@ class User {
       if (item.status === "left") ctx.session.failedJoin += 1;
       else if (item.status === "kicked") ctx.session.failedJoin += 1;
     }
+  }
+  private uploadData(ctx: SessionContext): boolean {
+    if (ctx.from?.id !== this.creator) return false;
+    if (ctx.session.uploadType === "upload") {
+      let data: Partial<UploadContent> = {
+        author_id: ctx.from?.id,
+        referral_link: nanoid(10),
+        text: ctx.message?.text,
+      };
+      let fileTypes: UploadTypeAllows[] = [
+        "photo",
+        "audio",
+        "voice",
+        "video",
+        "document",
+      ];
+      fileTypes.map((Type) => {
+        let selectType = ctx?.message?.[Type];
+        if (selectType instanceof Array) {
+          data.file = selectType[selectType.length - 1];
+          data.type = Type;
+        } else if (selectType instanceof Object) {
+          data.file = selectType;
+          data.type = Type;
+        }
+      });
+      //! completing file upload to file system
+      ctx.session.uploadDataSession = data!;
+      ctx.reply(
+        "بعد از اتمام کار و ارسال محتوا بر روی آپلود محتوا بزنید تا عملیات انجام شود."
+      );
+      return true;
+    }
+    return false;
   }
   private hasCreator(ctx: Context) {
     if (ctx.from?.id === this.creator) return true;
