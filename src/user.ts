@@ -42,12 +42,18 @@ class User {
             sendType: "send", //! default undefined
             uploadType: undefined, //! default undefined
             uploadDataSession: undefined,
+            refId: undefined,
           };
         },
       })
     );
     this.bot.command("start", async (ctx: SessionContext) => {
-      console.log(ctx.match);
+      if (ctx.match?.includes("ref")) {
+        ctx.session.refId = ctx.match! as string;
+        if (this.creator === ctx.from?.id) {
+          this.getReferralContent(ctx);
+        }
+      }
       if (ctx.from?.id === this.creator) {
         let newUser: UserScheme[] = [
           { id: ctx.from?.id!, lock: [], posts: [] },
@@ -103,6 +109,8 @@ class User {
         );
         ctx.session.channels = users[index]?.lock as ChannelType[];
         // ctx.session.failedJoin = 0;
+      } else {
+        this.getReferralContent(ctx);
       }
     });
 
@@ -221,15 +229,16 @@ class User {
       }
       if (failedJoin > 0) {
         ctx.reply(`باید در تمام کانال ها عضو شوید
-درحال حاظر شما در ${
-          (ctx.session.channels?.length! as unknown as number) - failedJoin
-        } کانال عضو شدید.
-        \n\n
-         
-        `);
+      درحال حاظر شما در ${
+        (ctx.session.channels?.length! as unknown as number) - failedJoin
+      } کانال عضو شدید.
+              \n\n
+
+              `);
       }
       if (joinedCount === ctx.session.channels?.length) {
         ctx.deleteMessage();
+        this.getReferralContent(ctx, ctx.session.refId);
       }
     });
     this.bot.hears("قفل به کانال🔐", (ctx: Context) => {
@@ -262,7 +271,7 @@ class User {
       // می توانید از حالت بولد و ایتالیک و مونو و... برای محتوای خود استفاده کنید.`);
       //       ctx.session.sendType = "send";
     });
-    this.bot.hears("آپلود محتوا", (ctx: SessionContext) => {
+    this.bot.hears("آپلود محتوا", async (ctx: SessionContext) => {
       if (typeof ctx.session.uploadDataSession === "undefined") {
         ctx.reply(`شما هنوز محتوایی ارسال نکردید.`);
         return;
@@ -270,9 +279,10 @@ class User {
       let users: UserScheme[] = JSON.parse(
         fs.readFileSync("./data/users.json", "utf8")
       );
+      console.log(ctx.session.uploadDataSession);
       let index = users.findIndex((user) => user.id === this.creator);
       users[index].posts.push(ctx.session.uploadDataSession);
-      fs.writeFileSync("./data/users.json", JSON.stringify(users));
+      await fs.writeFileSync("./data/users.json", JSON.stringify(users));
       const refUrl = `https://t.me/${this.bot.botInfo.username}?start=ref_${this.creator}_${ctx.session.uploadDataSession.referral_link}`;
       ctx.reply(`محتوا آپلود شد.
 لینک محتوا: 
@@ -337,11 +347,14 @@ ${refUrl}`);
   }
   private uploadData(ctx: SessionContext): boolean {
     if (ctx.from?.id !== this.creator) return false;
-    if (ctx.session.uploadType === "upload") {
+    if (
+      ctx.session.uploadType === "upload" &&
+      ctx.message?.text !== "آپلود محتوا"
+    ) {
       let data: Partial<UploadContent> = {
         author_id: ctx.from?.id,
         referral_link: nanoid(10),
-        text: ctx.message?.text,
+        text: ctx.message?.text ?? ctx.message?.caption,
       };
       let fileTypes: UploadTypeAllows[] = [
         "photo",
@@ -361,13 +374,36 @@ ${refUrl}`);
         }
       });
       //! completing file upload to file system
-      ctx.session.uploadDataSession = data!;
+      ctx.session.uploadDataSession = data;
+      // console.log(data);
       ctx.reply(
         "بعد از اتمام کار و ارسال محتوا بر روی آپلود محتوا بزنید تا عملیات انجام شود."
       );
       return true;
     }
     return false;
+  }
+  private getReferralContent(ctx: Context, refId?: string) {
+    let referral = refId ?? ctx.match;
+    if (!referral?.includes("ref")) return false;
+    let refParse: string[] = referral.toString().split("_");
+    refParse.shift();
+    let users: UserScheme[] = JSON.parse(
+      fs.readFileSync("./data/users.json", "utf8")
+    );
+    let index = users.findIndex((user) => user.id === +refParse[0]);
+    let refIndex = users[index].posts.findIndex(
+      (post) =>
+        post.referral_link === refParse.filter((_, i) => i !== 0).join("_")
+    );
+    let content = users[index].posts[refIndex];
+    // console.log(content);
+    if (content.type === "photo") {
+      this.bot.api.sendPhoto(ctx.chat?.id!, content.file?.file_id as string, {
+        caption: content.text,
+      });
+    }
+    // return users[index].posts[refIndex];
   }
   private hasCreator(ctx: Context) {
     if (ctx.from?.id === this.creator) return true;

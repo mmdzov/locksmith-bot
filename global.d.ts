@@ -58,9 +58,14 @@ export interface ChannelSession {
   title: "ChannelSession" | undefined;
 }
 
+export interface Referral {
+  refId: string | undefined;
+}
+
 type Sessions = ChannelSession &
   UserJoinedSession &
   SendType &
+  Referral &
   UploadDataSession;
 
 //bot type using session and session context
