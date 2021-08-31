@@ -14,7 +14,8 @@ export type UploadTypeAllows =
   | "audio"
   | "voice"
   | "video"
-  | "document";
+  | "document"
+  | "text";
 
 export interface UploadContent {
   file: UploadFileScheme;
@@ -48,8 +49,7 @@ export interface UploadDataSession {
   uploadDataSession: Partial<UploadContent> | undefined;
 }
 
-export interface SendType {
-  sendType: "send" | undefined;
+export interface UploadType {
   uploadType: "upload" | undefined;
 }
 
@@ -64,8 +64,8 @@ export interface Referral {
 
 type Sessions = ChannelSession &
   UserJoinedSession &
-  SendType &
   Referral &
+  UploadType &
   UploadDataSession;
 
 //bot type using session and session context

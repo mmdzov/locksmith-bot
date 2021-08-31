@@ -39,7 +39,6 @@ class User {
             title: undefined,
             channels: undefined,
             failedJoin: 0,
-            sendType: "send", //! default undefined
             uploadType: undefined, //! default undefined
             uploadDataSession: undefined,
             refId: undefined,
@@ -263,13 +262,6 @@ class User {
         }
       );
       ctx.session.uploadType = "upload";
-      //       ctx.reply(`متن خود را ارسال کنید.
-      // اگر تصویری دارید می توانید آن را کنار متن خود ضمیمه کنید.
-      // برای اشاره به لینک محتوای فعلی کافی است به این صورت عمل کنید:
-      // &دریافت فیلم📥&
-      // یعنی علامت & را می بایست قبل و بعد از محتوایی که می خواهید لینک بشود قرار بدهید.
-      // می توانید از حالت بولد و ایتالیک و مونو و... برای محتوای خود استفاده کنید.`);
-      //       ctx.session.sendType = "send";
     });
     this.bot.hears("آپلود محتوا", async (ctx: SessionContext) => {
       if (typeof ctx.session.uploadDataSession === "undefined") {
@@ -362,6 +354,7 @@ ${refUrl}`);
         "voice",
         "video",
         "document",
+        "text",
       ];
       fileTypes.map((Type) => {
         let selectType = ctx?.message?.[Type];
@@ -370,6 +363,8 @@ ${refUrl}`);
           data.type = Type;
         } else if (selectType instanceof Object) {
           data.file = selectType;
+          data.type = Type;
+        } else {
           data.type = Type;
         }
       });
@@ -397,13 +392,33 @@ ${refUrl}`);
         post.referral_link === refParse.filter((_, i) => i !== 0).join("_")
     );
     let content = users[index].posts[refIndex];
-    // console.log(content);
     if (content.type === "photo") {
       this.bot.api.sendPhoto(ctx.chat?.id!, content.file?.file_id as string, {
         caption: content.text,
       });
+    } else if (content.type === "audio") {
+      this.bot.api.sendAudio(ctx.chat?.id!, content.file?.file_id as string, {
+        caption: content.text,
+      });
+    } else if (content.type === "document") {
+      this.bot.api.sendDocument(
+        ctx.chat?.id!,
+        content.file?.file_id as string,
+        {
+          caption: content.text,
+        }
+      );
+    } else if (content.type === "video") {
+      this.bot.api.sendVideo(ctx.chat?.id!, content.file?.file_id as string, {
+        caption: content.text,
+      });
+    } else if (content.type === "voice") {
+      this.bot.api.sendVoice(ctx.chat?.id!, content.file?.file_id as string, {
+        caption: content.text,
+      });
+    } else if (content.type === "text") {
+      this.bot.api.sendMessage(ctx.chat?.id!, content?.text!);
     }
-    // return users[index].posts[refIndex];
   }
   private hasCreator(ctx: Context) {
     if (ctx.from?.id === this.creator) return true;
