@@ -249,7 +249,7 @@ class User {
         },
       });
     });
-    this.bot.hears("افزودن🕊", (ctx: SessionContext) => {
+    this.bot.hears("آپلود🗳", (ctx: SessionContext) => {
       ctx.reply(
         `محتوایی که می خواهید در ربات قفل بماند را ارسال کنید تا آپلود شود.
 
@@ -289,7 +289,7 @@ ${refUrl}`,
       ctx.session.uploadDataSession = undefined;
       ctx.session.uploadType = undefined;
     });
-    this.bot.hears("بازگشت", (ctx: Context) => {
+    this.bot.hears("بازگشت", (ctx: SessionContext) => {
       if (!this.hasCreator(ctx)) return;
       ctx.api.sendMessage(ctx.from?.id as number, `لطفا انتخاب کنید...`, {
         reply_markup: {
@@ -297,6 +297,8 @@ ${refUrl}`,
           resize_keyboard: true,
         },
       });
+      ctx.session.uploadDataSession = undefined;
+      ctx.session.uploadType = undefined;
     });
     this.bot.hears("کانال جدید", (ctx: SessionContext) => {
       if (!this.hasCreator(ctx)) return;
